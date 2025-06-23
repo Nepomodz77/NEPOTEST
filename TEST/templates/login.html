@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Website Load Tester</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .login-container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 1.5rem;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+        }
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+        button:hover {
+            background-color: #3367d6;
+        }
+        .error {
+            color: #d32f2f;
+            margin-top: 1rem;
+            text-align: center;
+        }
+        .register-link {
+            text-align: center;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>Website Load Tester</h1>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit">Login</button>
+            <div id="error" class="error"></div>
+            <div class="register-link">
+                Don't have an account? <a href="#" id="registerLink">Register</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBSGYmz_x-HYJlMXPc5Us6cvDzEG14FQYc",
+            authDomain: "moddind-chat.firebaseapp.com",
+            projectId: "moddind-chat",
+            storageBucket: "moddind-chat.appspot.com",
+            messagingSenderId: "502459143062",
+            appId: "1:502459143062:web:91f0406209c6f7c81643b7"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+
+        // Handle login form submission
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorElement = document.getElementById('error');
+            
+            errorElement.textContent = '';
+            
+            firebase.auth().signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    return userCredential.user.getIdToken();
+                })
+                .then((idToken) => {
+                    // Send the ID token to your Flask backend
+                    return fetch('/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `idToken=${encodeURIComponent(idToken)}`
+                    });
+                })
+                .then((response) => {
+                    return response.json();
+                })
+                .then((data) => {
+                    if (data.status === 'success') {
+                        window.location.href = '/';
+                    } else {
+                        errorElement.textContent = data.message || 'Login failed';
+                    }
+                })
+                .catch((error) => {
+                    errorElement.textContent = error.message;
+                });
+        });
+
+        // Handle registration link
+        document.getElementById('registerLink').addEventListener('click', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorElement = document.getElementById('error');
+            
+            if (!email || !password) {
+                errorElement.textContent = 'Please enter both email and password';
+                return;
+            }
+            
+            firebase.auth().createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    return userCredential.user.getIdToken();
+                })
+                .then((idToken) => {
+                    // Send the ID token to your Flask backend
+                    return fetch('/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `idToken=${encodeURIComponent(idToken)}`
+                    });
+                })
+                .then((response) => {
+                    return response.json();
+                })
+                .then((data) => {
+                    if (data.status === 'success') {
+                        window.location.href = '/';
+                    } else {
+                        errorElement.textContent = data.message || 'Registration failed';
+                    }
+                })
+                .catch((error) => {
+                    errorElement.textContent = error.message;
+                });
+        });
+    </script>
+</body>
+</html>
